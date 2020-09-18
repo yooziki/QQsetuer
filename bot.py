@@ -36,7 +36,7 @@ app = GraiaMiraiApplication(
     connect_info=Session(
         host="http://localhost:8080",  # 填入 httpapi 服务运行的地址
         authKey="INITKEYqrgJFDys",  # 填入 authKey
-        account=3491230400,  # 你的机器人的 qq 号
+        account=,  # 你的机器人的 qq 号
         websocket=True  # Graia 已经可以根据所配置的消息接收的方式来保证消息接收部分的正常运作.
     )
 )
@@ -136,12 +136,7 @@ async def group_message_handler(app: GraiaMiraiApplication, message: MessageChai
         await app.sendGroupMessage(group,
                                     message.create([Image.fromLocalFile(Universe.get_value("haotuScan"))]))
 
-    if (member.id - 2854196310 == 0):
-        # 群管家日常运维
-        await app.sendGroupMessage(group, message.create([Plain("开始更新今日色图......")]))
-        threadDaily = threading.Thread(target=extraEvent.DayilyMission, args=(group,0))
-        threadDaily.start()
-    elif member.permission is MemberPerm.Owner:
+    if member.permission is MemberPerm.Owner:
         if message.asDisplay().startswith("Update"):
             await app.sendGroupMessage(group, message.create([Plain("开始更新今日色图......")]))
             threadDaily = threading.Thread(target=extraEvent.DayilyMission, args=(group,0))
@@ -161,6 +156,7 @@ async def group_message_handler(app: GraiaMiraiApplication, message: MessageChai
         threadPic = threading.Thread(target=extraEvent.savePic, args=(savePicLs, 3))
         threadPic.start()
     # print(message)
+
 
 
 @bcc.receiver(BotGroupPermissionChangeEvent)
@@ -196,5 +192,22 @@ async def eventChecker60():
                 Plain(f"今日色图更新失败,请检查网络设置")
             ]))
         Universe.set_value("dailyMession", [0, None])
+
+
+@sche.schedule(timers.every_hours())
+async def eventChecker3600():
+    if extraEvent.getDate("%H") == "08":
+        await app.sendFriendMessage(775086089, MessageChain.create([
+            Plain(f"开始更新")
+        ]))
+        for ls in await app.groupList():
+            if ls.id in schedulepermission:
+                await app.sendGroupMessage(i, MessageChain.create([Plain("开始更新每日色图......")]))
+                await app.sendFriendMessage(775086089, MessageChain.create([
+                    Plain(f"群消息发送成功")
+                ]))
+                threadDaily = threading.Thread(target=extraEvent.DayilyMission, args=(ls, 0))
+                threadDaily.start()
+
 
 app.launch_blocking()
