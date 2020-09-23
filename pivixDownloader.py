@@ -8,8 +8,8 @@ import time
 import re
 from pivixDownloaderLogs import logs
 
-_USERNAME = "775086089@qq.com"
-_PASSWORD = "Lqbz970715"
+_USERNAME = "***"
+_PASSWORD = "***"
 _COUNT = 20
 # 作品排行
 # mode: [day, week, month, day_male, day_female, week_original, week_rookie, day_manga]
