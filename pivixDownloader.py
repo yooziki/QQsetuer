@@ -12,6 +12,7 @@ import accounts # is a dict
 
 _USERNAME = accounts._ACCOUNT["PIVusrname"]
 _PASSWORD = accounts._ACCOUNT["PIVpasswd"]
+
 _COUNT = 20
 # 作品排行
 # mode: [day, week, month, day_male, day_female, week_original, week_rookie, day_manga]
