@@ -48,14 +48,15 @@ def Down(id: int = 0):
             else:
                 h = str(h)
         getPicList()
-        Universe.set_value("dailyMession",[1])
+        Universe.set_value("dailyMession", [1])
     except:
         if id < 10:
             time.sleep(30 + id * 10)
             id += 1
             Down(id)
         else:
-            Universe.set_value("dailyMession",[-1])
+            Universe.set_value("dailyMession", [-1])
+
 
 def deb():
     """
@@ -69,19 +70,18 @@ def deb():
     return "do"
 
 
-def DayilyMission(group,id:int=0):
+def DayilyMission(group, id: int = 0):
     lock = Universe.get_value("lock")
     if not lock.locked():
         lock.acquire()
         Universe.set_value("lock", lock)
-        Universe.set_value("dailyMession", [0,group])
+        Universe.set_value("dailyMession", [0, group])
         Down()
         print("每日色图更新完成")
         lock.release()
         Universe.set_value("lock", lock)
     else:
         print("pass")
-
 
 
 def initNow(app: GraiaMiraiApplication, message: MessageChain, friend, loop):
@@ -94,7 +94,8 @@ def initNow(app: GraiaMiraiApplication, message: MessageChain, friend, loop):
         asyncio.run_coroutine_threadsafe(app.sendGroupMessage(friend, message.create(
             [Plain("今日色图：{}份\n今日好图：{}份".format(len(setuList), len(haotuList)))])), loop)
 
-def fixPics(app:GraiaMiraiApplication,message:MessageChain, friend,loop):
+
+def fixPics(app: GraiaMiraiApplication, message: MessageChain, friend, loop):
     """
     修复图片感叹号
 
@@ -115,6 +116,7 @@ def fixPics(app:GraiaMiraiApplication,message:MessageChain, friend,loop):
         asyncio.run_coroutine_threadsafe(app.sendGroupMessage(friend, message.create(
             [Plain("修好啦！没修好的就没救了".format(len(setuList), len(haotuList)))])), loop)
 
+
 def getPicList():
     """
     获得今日色图的Image列表
@@ -134,16 +136,17 @@ def getPicList():
     abspath_haotu = os.path.abspath("{}/{}/{}".format(rootdir, date, mode[0]))
     for i in range(len(haotuList)):
         haotuList[i] = os.path.join(abspath_haotu, haotuList[i])
-    Universe.set_value("setuScan","{}/{}/{}_scan.jpg".format(rootdir,date,mode[1]))
+    Universe.set_value("setuScan", "{}/{}/{}_scan.jpg".format(rootdir, date, mode[1]))
     Universe.set_value("haotuScan", "{}/{}/{}_scan.jpg".format(rootdir, date, mode[0]))
 
-def getDate(pattern:str="%Y-%m-%d"):
-    import time
-    t = time.gmtime()
-    date = time.strftime(pattern, t)
+
+def getDate(pattern: str = "%Y-%m-%d"):
+    import datetime
+    date = datetime.datetime.today().strftime(pattern)
     return date
 
-def savePic(savePicLs,oth:int=0):
+
+def savePic(savePicLs, counter, app, sourceid, group, loop):
     lock = Universe.get_value("SavePicLock")
     lock.acquire()
     Universe.set_value("SavePicLock", lock)
@@ -156,9 +159,40 @@ def savePic(savePicLs,oth:int=0):
         try:
             response = requests.get(ls.url)
             img = PILImage.open(BytesIO(response.content))
+            wid, hght = img.size
+            if wid + hght < 500 and len(savePicLs) < 2:
+                print("表情包")
+                asyncio.run_coroutine_threadsafe(
+                    app.sendGroupMessage(group, MessageChain.create([Plain("表情包".format(counter))]),
+                                         quote=sourceid), loop)
+                lock.release()
+                Universe.set_value("SavePicLock", lock)
+                return 0
             img.save(os.path.join(direct, "{}.{}".format(ls.imageId[1:-7], img.format.lower())))
+            asyncio.run_coroutine_threadsafe(
+                app.sendGroupMessage(group, MessageChain.create([Plain("{}张".format(counter))])), loop)
             print("saved")
         except:
+            asyncio.run_coroutine_threadsafe(
+                app.sendGroupMessage(group, MessageChain.create([Plain("{}张保存失败".format(counter))]), quote=sourceid),
+                loop)
             print("failed")
-    #lock.release()
+    lock.release()
     Universe.set_value("SavePicLock", lock)
+
+
+def freshChecker():
+    '''
+    检测是否更新了图片以及图片更新是否完成（只会在程序启动时检测）
+
+    :return:bool
+    '''
+    dir = "{}/{}/{}".format(pivixDownloader._ROOTDIC, getDate(), pivixDownloader._MODE[-1])
+    if os.path.exists(dir):
+        PicList = os.listdir(dir)
+        if len(PicList) < pivixDownloader._COUNT:
+            return False
+        else:
+            return True
+    else:
+        return False
